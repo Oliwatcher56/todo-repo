@@ -2,10 +2,14 @@ package main
 
 import "fmt"
 
+func sum(a, b int) int {
+	return a + b
+}
+
 func main() {
 
-	for range 3 {
-		fmt.Println("Hi there")
-	}
+	result := sum(3, 5)
+
+	fmt.Println("Сумма:", result)
 
 }

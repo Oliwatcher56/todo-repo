@@ -2,370 +2,102 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"os"
 	"strings"
+	"todo/commands"
+	"todo/tasks"
 )
-
-type Task struct {
-	Name     string
-	Status   string
-	Priority string
-}
-
-type Commands struct {
-	Data  map[string]string
-	Order []string
-}
-
-var taskList = make(map[string]*Task)
-
-const (
-	todo       = "todo"
-	inProgress = "progress"
-	done       = "done"
-	low        = "low"
-	high       = "high"
-)
-
-const (
-	emptyList         = "Список пуст!"
-	emptyName         = "Пустое имя задачи!"
-	alreadyExists     = "Такая задача уже существует!"
-	notExist          = "Такой задачи не существует!"
-	protectedByStatus = "Задача в процессе выполнения не может быть удалена!"
-	incorrectStatus   = "Некорректный статус задачи"
-	incorrectPriority = "Некорректный приоритет задачи"
-)
-
-func showList() error {
-
-	if len(taskList) == 0 {
-		return errors.New(emptyList)
-	}
-
-	for _, task := range taskList {
-		fmt.Printf("Задача -> %s | Статус -> %s | Приоритет -> %s\n", task.Name, task.Status, task.Priority)
-	}
-
-	return nil
-}
-
-func addTask(name, priority string) error {
-
-	name = strings.TrimSpace(name)
-
-	if !isNotEmpty(name) {
-		return errors.New(emptyName)
-	}
-
-	priority = strings.ToLower(strings.TrimSpace(priority))
-
-	if !isValidPriority(priority) {
-		return errors.New(incorrectPriority)
-	}
-
-	if _, ok := taskList[name]; ok {
-		return errors.New(alreadyExists)
-	}
-
-	taskList[name] = &Task{
-		Name:     name,
-		Status:   todo,
-		Priority: priority,
-	}
-
-	return nil
-}
-
-func removeTask(name string) error {
-
-	name = strings.TrimSpace(name)
-
-	if !isNotEmpty(name) {
-		return errors.New(emptyName)
-	}
-
-	task, ok := taskList[name]
-
-	if !ok {
-		return errors.New(notExist)
-	}
-
-	if task.Status == inProgress {
-		return errors.New(protectedByStatus)
-	}
-
-	delete(taskList, name)
-
-	return nil
-}
-
-func changeTask(name, priority, status string) error {
-
-	name = strings.TrimSpace(name)
-
-	if !isNotEmpty(name) {
-		return errors.New(emptyName)
-	}
-
-	task, ok := taskList[name]
-
-	if !ok {
-		return errors.New(notExist)
-	}
-
-	status = strings.ToLower(strings.TrimSpace(status))
-	priority = strings.ToLower(strings.TrimSpace(priority))
-
-	if !isValidStatus(status) {
-		return errors.New(incorrectStatus)
-	}
-
-	if !isValidPriority(priority) {
-		return errors.New(incorrectPriority)
-	}
-
-	task.Status = status
-	task.Priority = priority
-
-	return nil
-}
-
-func searchByQuery(query string) error {
-	query = strings.TrimSpace(query)
-
-	if !isNotEmpty(query) {
-		return errors.New("Ключевое слово не может быть пустым!")
-	}
-
-	normalizedQuery := strings.ToLower(query)
-
-	flag := false
-
-	for name := range taskList {
-		ok := strings.Contains(strings.ToLower(name), normalizedQuery)
-
-		if ok {
-			fmt.Printf("Совпадение с %q, возможно вы ищете : %q\n", query, name)
-			flag = true
-		}
-	}
-
-	if !flag {
-		fmt.Println("Ничего не найдено")
-		return nil
-	}
-
-	return nil
-}
-
-func extractQuoted(input string) (string, error) {
-
-	if strings.Count(input, "\"") != 2 {
-		return "", errors.New("имя задачи введено неверно, попробуйте вот так: \"task name\"")
-	}
-
-	name := input[strings.Index(input, "\"")+1 : strings.LastIndex(input, "\"")]
-
-	return name, nil
-
-}
-
-func parseAddCommand(input string) (name, priority string, err error) {
-
-	name, err = extractQuoted(input)
-
-	if err != nil {
-		return "", "", err
-	}
-
-	endQuote := strings.LastIndex(input, "\"")
-	rightSide := strings.TrimSpace(input[endQuote+1:])
-
-	parts := strings.Fields(rightSide)
-	if len(parts) != 1 {
-		return "", "", errors.New("Неверный формат ввода, попробуйте: add \"task name\" low|high")
-	}
-
-	priority = parts[0]
-
-	return name, priority, nil
-}
-
-func parseChangeCommand(input string) (name, priority, status string, err error) {
-
-	name, err = extractQuoted(input)
-
-	if err != nil {
-		return "", "", "", err
-	}
-
-	endQuote := strings.LastIndex(input, "\"")
-	rightSide := strings.TrimSpace(input[endQuote+1:])
-
-	parts := strings.Fields(rightSide)
-	if len(parts) != 2 {
-		return "", "", "", errors.New("Неверный формат ввода, попробуйте: change \"task name\" low|high todo|progress|done")
-	}
-
-	priority = parts[0]
-	status = parts[1]
-
-	return name, priority, status, nil
-}
-
-func parseRemoveCommand(input string) (name string, err error) {
-
-	name, err = extractQuoted(input)
-
-	if err != nil {
-		return "", err
-	}
-
-	endQuote := strings.LastIndex(input, "\"")
-	rightSide := strings.TrimSpace(input[endQuote+1:])
-
-	if rightSide != "" {
-		return "", errors.New("Неверный формат ввода, попробуйте: remove \"task name\"")
-	}
-
-	return name, nil
-}
-
-func parseQueryCommand(input string) (query string, err error) {
-
-	query, err = extractQuoted(input)
-
-	if err != nil {
-		return "", errors.New("Неверный формат ввода, попробуйте: search \"keyword\"")
-	}
-
-	endQuote := strings.LastIndex(input, "\"")
-	rightSide := strings.TrimSpace(input[endQuote+1:])
-
-	if rightSide != "" {
-		return "", errors.New("Неверный формат ввода, попробуйте: search \"keyword\"")
-	}
-
-	return query, nil
-}
-
-func isValidStatus(status string) bool {
-	return status == todo || status == inProgress || status == done
-}
-
-func isValidPriority(priority string) bool {
-	return priority == low || priority == high
-}
-
-func isNotEmpty(name string) bool {
-	return name != ""
-}
-
-func showCommands(commands Commands) {
-	for _, name := range commands.Order {
-		fmt.Printf("Команда -> %s -> %s\n", name, commands.Data[name])
-	}
-}
 
 func main() {
 
-	commands := Commands{
-		Order: []string{"help", "list", "add", "change", "remove", "search", "exit"},
-		Data: map[string]string{
-			"help":   "Вывести список всех команд",
-			"list":   "Вывести список всех задач",
-			"add":    "Добавить задачу",
-			"change": "Изменить приоритет/статус",
-			"remove": "Удалить задачу",
-			"search": "Найти задачу",
-			"exit":   "Выход",
-		},
-	}
-
+	store := tasks.NewStore()
 	scanner := bufio.NewScanner(os.Stdin)
 
 	fmt.Println("ToDo v0.1")
 
-Loop:
 	for {
-
 		fmt.Print("> ")
+
 		scanner.Scan()
 
 		userInput := scanner.Text()
-
 		parts := strings.Fields(userInput)
 
 		if len(parts) < 1 {
-			continue Loop
+			continue
 		}
 
 		command := parts[0]
 
 		switch command {
 		case "help":
-			showCommands(commands)
+			commands.Default.Show()
+
 		case "exit":
 			fmt.Println("До скорых встреч!")
 			return
+
 		case "list":
-			if err := showList(); err != nil {
+			if err := store.List(); err != nil {
 				fmt.Println(err)
 			}
+
 		case "add":
-			name, priority, err := parseAddCommand(userInput)
+			name, priority, err := commands.ParseAddCommand(userInput)
 
 			if err != nil {
 				fmt.Println(err)
-				continue Loop
+				continue
 			}
 
-			if err := addTask(name, priority); err != nil {
+			if err := store.Add(name, priority); err != nil {
 				fmt.Println(err)
 			} else {
 				fmt.Printf("Задача %q с приоритетом %q была добавлена!\n", name, priority)
 
 			}
+
 		case "remove":
-			name, err := parseRemoveCommand(userInput)
+			name, err := commands.ParseRemoveCommand(userInput)
 
 			if err != nil {
 				fmt.Println(err)
-				continue Loop
+				continue
 			}
 
-			if err := removeTask(name); err != nil {
+			if err := store.Remove(name); err != nil {
 				fmt.Println(err)
 			} else {
 				fmt.Printf("Задача %q была удалена!\n", name)
 			}
+
 		case "change":
-			name, priority, status, err := parseChangeCommand(userInput)
+			name, priority, status, err := commands.ParseChangeCommand(userInput)
 
 			if err != nil {
 				fmt.Println(err)
-				continue Loop
+				continue
 			}
 
-			if err := changeTask(name, priority, status); err != nil {
+			if err := store.Change(name, priority, status); err != nil {
 				fmt.Println(err)
 			} else {
 				fmt.Printf("Задача %q была изменена!\n", name)
 				fmt.Printf("Актуальный статус %q | актуальный приоритет %q\n", status, priority)
 			}
+
 		case "search":
-			query, err := parseQueryCommand(userInput)
+			query, err := commands.ParseQueryCommand(userInput)
 
 			if err != nil {
 				fmt.Println(err)
-				continue Loop
+				continue
 			}
-			if err := searchByQuery(query); err != nil {
+			if err := store.Search(query); err != nil {
 				fmt.Println(err)
 			}
+
 		default:
 			fmt.Printf("Данной команды не существует, введите help\n")
 		}

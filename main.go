@@ -56,7 +56,7 @@ func addTask(name, priority string) error {
 
 	name = strings.TrimSpace(name)
 
-	if !isValidName(name) {
+	if !isNotEmpty(name) {
 		return errors.New(emptyName)
 	}
 
@@ -83,7 +83,7 @@ func removeTask(name string) error {
 
 	name = strings.TrimSpace(name)
 
-	if !isValidName(name) {
+	if !isNotEmpty(name) {
 		return errors.New(emptyName)
 	}
 
@@ -102,11 +102,11 @@ func removeTask(name string) error {
 	return nil
 }
 
-func changeTask(name, status, priority string) error {
+func changeTask(name, priority, status string) error {
 
 	name = strings.TrimSpace(name)
 
-	if !isValidName(name) {
+	if !isNotEmpty(name) {
 		return errors.New(emptyName)
 	}
 
@@ -133,11 +133,19 @@ func changeTask(name, status, priority string) error {
 	return nil
 }
 
-func searchByQuery(query string) {
+func searchByQuery(query string) error {
+	query = strings.TrimSpace(query)
+
+	if !isNotEmpty(query) {
+		return errors.New("Ключевое слово не может быть пустым!")
+	}
+
+	normalizedQuery := strings.ToLower(query)
+
 	flag := false
 
 	for name := range taskList {
-		ok := strings.Contains(name, query)
+		ok := strings.Contains(strings.ToLower(name), normalizedQuery)
 
 		if ok {
 			fmt.Printf("Совпадение с %q, возможно вы ищете : %q\n", query, name)
@@ -147,7 +155,101 @@ func searchByQuery(query string) {
 
 	if !flag {
 		fmt.Println("Ничего не найдено")
+		return nil
 	}
+
+	return nil
+}
+
+func extractQuoted(input string) (string, error) {
+
+	if strings.Count(input, "\"") != 2 {
+		return "", errors.New("имя задачи введено неверно, попробуйте вот так: \"task name\"")
+	}
+
+	name := input[strings.Index(input, "\"")+1 : strings.LastIndex(input, "\"")]
+
+	return name, nil
+
+}
+
+func parseAddCommand(input string) (name, priority string, err error) {
+
+	name, err = extractQuoted(input)
+
+	if err != nil {
+		return "", "", err
+	}
+
+	endQuote := strings.LastIndex(input, "\"")
+	rightSide := strings.TrimSpace(input[endQuote+1:])
+
+	parts := strings.Fields(rightSide)
+	if len(parts) != 1 {
+		return "", "", errors.New("Неверный формат ввода, попробуйте: add \"task name\" low|high")
+	}
+
+	priority = parts[0]
+
+	return name, priority, nil
+}
+
+func parseChangeCommand(input string) (name, priority, status string, err error) {
+
+	name, err = extractQuoted(input)
+
+	if err != nil {
+		return "", "", "", err
+	}
+
+	endQuote := strings.LastIndex(input, "\"")
+	rightSide := strings.TrimSpace(input[endQuote+1:])
+
+	parts := strings.Fields(rightSide)
+	if len(parts) != 2 {
+		return "", "", "", errors.New("Неверный формат ввода, попробуйте: change \"task name\" low|high todo|progress|done")
+	}
+
+	priority = parts[0]
+	status = parts[1]
+
+	return name, priority, status, nil
+}
+
+func parseRemoveCommand(input string) (name string, err error) {
+
+	name, err = extractQuoted(input)
+
+	if err != nil {
+		return "", err
+	}
+
+	endQuote := strings.LastIndex(input, "\"")
+	rightSide := strings.TrimSpace(input[endQuote+1:])
+
+	if rightSide != "" {
+		return "", errors.New("Неверный формат ввода, попробуйте: remove \"task name\"")
+	}
+
+	return name, nil
+}
+
+func parseQueryCommand(input string) (query string, err error) {
+
+	query, err = extractQuoted(input)
+
+	if err != nil {
+		return "", errors.New("Неверный формат ввода, попробуйте: search \"keyword\"")
+	}
+
+	endQuote := strings.LastIndex(input, "\"")
+	rightSide := strings.TrimSpace(input[endQuote+1:])
+
+	if rightSide != "" {
+		return "", errors.New("Неверный формат ввода, попробуйте: search \"keyword\"")
+	}
+
+	return query, nil
 }
 
 func isValidStatus(status string) bool {
@@ -158,28 +260,29 @@ func isValidPriority(priority string) bool {
 	return priority == low || priority == high
 }
 
-func isValidName(name string) bool {
+func isNotEmpty(name string) bool {
 	return name != ""
 }
 
-func showCommands(data map[string]string, order []string) {
-	for _, name := range order {
-		fmt.Printf("Команда -> %s -> %s\n", name, data[name])
+func showCommands(commands Commands) {
+	for _, name := range commands.Order {
+		fmt.Printf("Команда -> %s -> %s\n", name, commands.Data[name])
 	}
 }
 
 func main() {
 
-	cmdOrder := []string{"help", "list", "add", "change", "remove", "search", "exit"}
-
-	cmdData := map[string]string{
-		"help":   "Вывести список всех команд",
-		"list":   "Вывести список всех задач",
-		"add":    "Добавить задачу",
-		"change": "Изменить имя/статус/приоритет",
-		"remove": "Удалить задачу",
-		"search": "Найти задачу",
-		"exit":   "Выход",
+	commands := Commands{
+		Order: []string{"help", "list", "add", "change", "remove", "search", "exit"},
+		Data: map[string]string{
+			"help":   "Вывести список всех команд",
+			"list":   "Вывести список всех задач",
+			"add":    "Добавить задачу",
+			"change": "Изменить приоритет/статус",
+			"remove": "Удалить задачу",
+			"search": "Найти задачу",
+			"exit":   "Выход",
+		},
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -201,11 +304,10 @@ Loop:
 		}
 
 		command := parts[0]
-		args := parts[1:]
 
 		switch command {
 		case "help":
-			showCommands(cmdData, cmdOrder)
+			showCommands(commands)
 		case "exit":
 			fmt.Println("До скорых встреч!")
 			return
@@ -214,8 +316,12 @@ Loop:
 				fmt.Println(err)
 			}
 		case "add":
-			name := userInput[strings.Index(userInput, "\"")+1 : strings.LastIndex(userInput, "\"")]
-			priority := args[len(args)-1]
+			name, priority, err := parseAddCommand(userInput)
+
+			if err != nil {
+				fmt.Println(err)
+				continue Loop
+			}
 
 			if err := addTask(name, priority); err != nil {
 				fmt.Println(err)
@@ -224,7 +330,12 @@ Loop:
 
 			}
 		case "remove":
-			name := userInput[strings.Index(userInput, "\"")+1 : strings.LastIndex(userInput, "\"")]
+			name, err := parseRemoveCommand(userInput)
+
+			if err != nil {
+				fmt.Println(err)
+				continue Loop
+			}
 
 			if err := removeTask(name); err != nil {
 				fmt.Println(err)
@@ -232,19 +343,29 @@ Loop:
 				fmt.Printf("Задача %q была удалена!\n", name)
 			}
 		case "change":
-			name := userInput[strings.Index(userInput, "\"")+1 : strings.LastIndex(userInput, "\"")]
-			status := args[len(args)-2]
-			priority := args[len(args)-1]
+			name, priority, status, err := parseChangeCommand(userInput)
 
-			if err := changeTask(name, status, priority); err != nil {
+			if err != nil {
+				fmt.Println(err)
+				continue Loop
+			}
+
+			if err := changeTask(name, priority, status); err != nil {
 				fmt.Println(err)
 			} else {
 				fmt.Printf("Задача %q была изменена!\n", name)
 				fmt.Printf("Актуальный статус %q | актуальный приоритет %q\n", status, priority)
 			}
 		case "search":
-			name := userInput[strings.Index(userInput, "\"")+1 : strings.LastIndex(userInput, "\"")]
-			searchByQuery(name)
+			query, err := parseQueryCommand(userInput)
+
+			if err != nil {
+				fmt.Println(err)
+				continue Loop
+			}
+			if err := searchByQuery(query); err != nil {
+				fmt.Println(err)
+			}
 		default:
 			fmt.Printf("Данной команды не существует, введите help\n")
 		}

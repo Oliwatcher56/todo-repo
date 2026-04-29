@@ -186,6 +186,7 @@ func main() {
 
 	fmt.Println("ToDo v0.1")
 
+Loop:
 	for {
 
 		fmt.Print("> ")
@@ -194,6 +195,10 @@ func main() {
 		userInput := scanner.Text()
 
 		parts := strings.Fields(userInput)
+
+		if len(parts) < 1 {
+			continue Loop
+		}
 
 		command := parts[0]
 		args := parts[1:]
@@ -240,6 +245,8 @@ func main() {
 		case "search":
 			name := userInput[strings.Index(userInput, "\"")+1 : strings.LastIndex(userInput, "\"")]
 			searchByQuery(name)
+		default:
+			fmt.Printf("Данной команды не существует, введите help\n")
 		}
 	}
 

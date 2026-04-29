@@ -14,11 +14,16 @@ type Task struct {
 	Priority string
 }
 
+type Commands struct {
+	Data  map[string]string
+	Order []string
+}
+
 var taskList = make(map[string]*Task)
 
 const (
 	todo       = "todo"
-	inProgress = "in progress"
+	inProgress = "progress"
 	done       = "done"
 	low        = "low"
 	high       = "high"
@@ -41,7 +46,7 @@ func showList() error {
 	}
 
 	for _, task := range taskList {
-		fmt.Printf("Задача %s | Статус %s | Приоритет %s\n", task.Name, task.Status, task.Priority)
+		fmt.Printf("Задача -> %s | Статус -> %s | Приоритет -> %s\n", task.Name, task.Status, task.Priority)
 	}
 
 	return nil
@@ -128,6 +133,23 @@ func changeTask(name, status, priority string) error {
 	return nil
 }
 
+func searchByQuery(query string) {
+	flag := false
+
+	for name := range taskList {
+		ok := strings.Contains(name, query)
+
+		if ok {
+			fmt.Printf("Совпадение с %q, возможно вы ищете : %q\n", query, name)
+			flag = true
+		}
+	}
+
+	if !flag {
+		fmt.Println("Ничего не найдено")
+	}
+}
+
 func isValidStatus(status string) bool {
 	return status == todo || status == inProgress || status == done
 }
@@ -140,17 +162,85 @@ func isValidName(name string) bool {
 	return name != ""
 }
 
+func showCommands(data map[string]string, order []string) {
+	for _, name := range order {
+		fmt.Printf("Команда -> %s -> %s\n", name, data[name])
+	}
+}
+
 func main() {
+
+	cmdOrder := []string{"help", "list", "add", "change", "remove", "search", "exit"}
+
+	cmdData := map[string]string{
+		"help":   "Вывести список всех команд",
+		"list":   "Вывести список всех задач",
+		"add":    "Добавить задачу",
+		"change": "Изменить имя/статус/приоритет",
+		"remove": "Удалить задачу",
+		"search": "Найти задачу",
+		"exit":   "Выход",
+	}
 
 	scanner := bufio.NewScanner(os.Stdin)
 
-	fmt.Print("> ")
-	scanner.Scan()
+	fmt.Println("ToDo v0.1")
 
-	text := scanner.Text()
+	for {
 
-	if text == "list" {
-		showList()
+		fmt.Print("> ")
+		scanner.Scan()
+
+		userInput := scanner.Text()
+
+		parts := strings.Fields(userInput)
+
+		command := parts[0]
+		args := parts[1:]
+
+		switch command {
+		case "help":
+			showCommands(cmdData, cmdOrder)
+		case "exit":
+			fmt.Println("До скорых встреч!")
+			return
+		case "list":
+			if err := showList(); err != nil {
+				fmt.Println(err)
+			}
+		case "add":
+			name := userInput[strings.Index(userInput, "\"")+1 : strings.LastIndex(userInput, "\"")]
+			priority := args[len(args)-1]
+
+			if err := addTask(name, priority); err != nil {
+				fmt.Println(err)
+			} else {
+				fmt.Printf("Задача %q с приоритетом %q была добавлена!\n", name, priority)
+
+			}
+		case "remove":
+			name := userInput[strings.Index(userInput, "\"")+1 : strings.LastIndex(userInput, "\"")]
+
+			if err := removeTask(name); err != nil {
+				fmt.Println(err)
+			} else {
+				fmt.Printf("Задача %q была удалена!\n", name)
+			}
+		case "change":
+			name := userInput[strings.Index(userInput, "\"")+1 : strings.LastIndex(userInput, "\"")]
+			status := args[len(args)-2]
+			priority := args[len(args)-1]
+
+			if err := changeTask(name, status, priority); err != nil {
+				fmt.Println(err)
+			} else {
+				fmt.Printf("Задача %q была изменена!\n", name)
+				fmt.Printf("Актуальный статус %q | актуальный приоритет %q\n", status, priority)
+			}
+		case "search":
+			name := userInput[strings.Index(userInput, "\"")+1 : strings.LastIndex(userInput, "\"")]
+			searchByQuery(name)
+		}
 	}
 
 }

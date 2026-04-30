@@ -13,7 +13,7 @@ func main() {
 
 	store := tasks.NewStore()
 
-	err := tasks.Load(&store.Tasks, "tasks.gob")
+	err := tasks.Load(&store.Tasks, tasks.MainStorage)
 
 	if err != nil {
 		fmt.Println("Ошибка при попытке загрузить список:", err)
@@ -49,6 +49,7 @@ func main() {
 			return
 
 		case "list":
+
 			if err := store.List(); err != nil {
 				fmt.Println(err)
 			}
@@ -64,7 +65,7 @@ func main() {
 			if err := store.Add(name, priority); err != nil {
 				fmt.Println(err)
 			} else {
-				err := tasks.Save(store.Tasks, "tasks.gob")
+				err := tasks.Save(store.Tasks, tasks.MainStorage)
 
 				if err != nil {
 					fmt.Println("Ошибка при записи:", err)
@@ -85,7 +86,7 @@ func main() {
 			if err := store.Remove(name); err != nil {
 				fmt.Println(err)
 			} else {
-				err := tasks.Save(store.Tasks, "tasks.gob")
+				err := tasks.Save(store.Tasks, tasks.MainStorage)
 
 				if err != nil {
 					fmt.Println("Ошибка при записи:", err)
@@ -104,7 +105,7 @@ func main() {
 			if err := store.Change(name, priority, status); err != nil {
 				fmt.Println(err)
 			} else {
-				err := tasks.Save(store.Tasks, "tasks.gob")
+				err := tasks.Save(store.Tasks, tasks.MainStorage)
 
 				if err != nil {
 					fmt.Println("Ошибка при записи:", err)
@@ -120,8 +121,25 @@ func main() {
 				fmt.Println(err)
 				continue
 			}
+
 			if err := store.Search(query); err != nil {
 				fmt.Println(err)
+			}
+
+		case "filter":
+
+			criterion, err := commands.ParseFilterCommand(userInput)
+
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+
+			switch criterion {
+			case "by status":
+
+			case "by priority":
+
 			}
 
 		case "reset":
@@ -143,6 +161,36 @@ func main() {
 			}
 
 			fmt.Println("Список задач успешно очищен!")
+
+		case "save":
+
+			filename, err := commands.ParseStorageCommand(userInput)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+
+			if err := tasks.Save(store.Tasks, filename); err != nil {
+				fmt.Println(err)
+				continue
+			}
+
+			fmt.Println("Текущий список успешно сохранён в файл:", filename)
+
+		case "load":
+
+			filename, err := commands.ParseStorageCommand(userInput)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+
+			if err := tasks.Load(&store.Tasks, filename); err != nil {
+				fmt.Println(err)
+				continue
+			}
+
+			fmt.Println("Текущий список успешно загружен из файла:", filename)
 
 		default:
 			fmt.Printf("Данной команды не существует, введите help\n")

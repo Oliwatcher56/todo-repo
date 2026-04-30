@@ -100,10 +100,51 @@ func ParseResetCommand(input string) error {
 
 	parts := strings.Fields(input)
 
-	if len(parts) != 1 || parts[0] != "reset" {
+	if len(parts) != 1 {
 		return errors.New("Неверный формат ввода, попробуйте: reset")
 	}
 
 	return nil
+
+}
+
+func ParseStorageCommand(input string) (filename string, err error) {
+
+	filename, err = ExtractQuoted(input)
+
+	if err != nil {
+		return "", errors.New("Неверный формат ввода, попробуйте: save|load \"filename.gob\n")
+	}
+
+	parts := strings.Fields(input)
+
+	if len(parts) > 2 {
+		return "", errors.New("Неверный формат ввода, попробуйте: save|load \"filename.gob\n")
+	}
+
+	return filename, nil
+
+}
+
+func ParseFilterCommand(input string) (criterion string, err error) {
+
+	criterion, err = ExtractQuoted(input)
+
+	if err != nil {
+		return "", errors.New("Неверный формат ввода, попробуйте: filter \"by criterion\n")
+	}
+
+	if !(criterion == "by status" || criterion == "by priority") {
+		return "", errors.New("Неверный формат ввода, попробуйте: filter \"by criterion\n")
+	}
+
+	endQuote := strings.LastIndex(input, "\"")
+	rightSide := strings.TrimSpace(input[endQuote+1:])
+
+	if rightSide != "" {
+		return "", errors.New("Неверный формат ввода, попробуйте: filter \"by criterion\n")
+	}
+
+	return criterion, nil
 
 }

@@ -24,7 +24,10 @@ func Save(store map[string]*Task, filename string) error {
 	return nil
 }
 
+const MainStorage = "tasks.gob"
+
 func Load(store *map[string]*Task, filename string) error {
+
 	file, err := os.Open(filename)
 
 	if err != nil {
@@ -74,7 +77,7 @@ func Reset(store map[string]*Task) error {
 		delete(store, task)
 	}
 
-	err := Save(store, "tasks.gob")
+	err := Save(store, MainStorage)
 
 	if err != nil {
 		return err

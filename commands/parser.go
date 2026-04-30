@@ -96,9 +96,11 @@ func ParseQueryCommand(input string) (query string, err error) {
 	return query, nil
 }
 
-func ParseResetCommand(parts []string) error {
+func ParseResetCommand(input string) error {
 
-	if len(parts) != 1 {
+	parts := strings.Fields(input)
+
+	if len(parts) != 1 || parts[0] != "reset" {
 		return errors.New("Неверный формат ввода, попробуйте: reset")
 	}
 

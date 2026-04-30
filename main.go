@@ -125,8 +125,13 @@ func main() {
 			}
 
 		case "reset":
-			if err := commands.ParseResetCommand(parts); err != nil {
+
+			if err := commands.ParseResetCommand(userInput); err != nil {
 				fmt.Println(err)
+				continue
+			}
+
+			if ok := tasks.ResetValidate(); !ok {
 				continue
 			}
 

@@ -12,6 +12,16 @@ import (
 func main() {
 
 	store := tasks.NewStore()
+
+	err := tasks.Load(&store.Tasks, "tasks.gob")
+
+	if err != nil {
+		fmt.Println("Ошибка при попытке загрузить список:", err)
+		return
+	}
+
+	fmt.Println("Данные успешно загружены из файла!")
+
 	scanner := bufio.NewScanner(os.Stdin)
 
 	fmt.Println("ToDo v0.1")
@@ -54,6 +64,12 @@ func main() {
 			if err := store.Add(name, priority); err != nil {
 				fmt.Println(err)
 			} else {
+				err := tasks.Save(store.Tasks, "tasks.gob")
+
+				if err != nil {
+					fmt.Println("Ошибка при записи:", err)
+				}
+
 				fmt.Printf("Задача %q с приоритетом %q была добавлена!\n", name, priority)
 
 			}
@@ -69,6 +85,11 @@ func main() {
 			if err := store.Remove(name); err != nil {
 				fmt.Println(err)
 			} else {
+				err := tasks.Save(store.Tasks, "tasks.gob")
+
+				if err != nil {
+					fmt.Println("Ошибка при записи:", err)
+				}
 				fmt.Printf("Задача %q была удалена!\n", name)
 			}
 
@@ -83,6 +104,11 @@ func main() {
 			if err := store.Change(name, priority, status); err != nil {
 				fmt.Println(err)
 			} else {
+				err := tasks.Save(store.Tasks, "tasks.gob")
+
+				if err != nil {
+					fmt.Println("Ошибка при записи:", err)
+				}
 				fmt.Printf("Задача %q была изменена!\n", name)
 				fmt.Printf("Актуальный статус %q | актуальный приоритет %q\n", status, priority)
 			}
@@ -97,6 +123,21 @@ func main() {
 			if err := store.Search(query); err != nil {
 				fmt.Println(err)
 			}
+
+		case "reset":
+			if err := commands.ParseResetCommand(parts); err != nil {
+				fmt.Println(err)
+				continue
+			}
+
+			err := tasks.Reset(store.Tasks)
+
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+
+			fmt.Println("Список задач успешно очищен!")
 
 		default:
 			fmt.Printf("Данной команды не существует, введите help\n")

@@ -95,3 +95,13 @@ func ParseQueryCommand(input string) (query string, err error) {
 
 	return query, nil
 }
+
+func ParseResetCommand(parts []string) error {
+
+	if len(parts) != 1 {
+		return errors.New("Неверный формат ввода, попробуйте: reset")
+	}
+
+	return nil
+
+}

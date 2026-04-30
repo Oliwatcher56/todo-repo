@@ -22,22 +22,22 @@ const (
 )
 
 type Store struct {
-	tasks map[string]*Task
+	Tasks map[string]*Task
 }
 
 func NewStore() *Store {
 	return &Store{
-		tasks: make(map[string]*Task),
+		Tasks: make(map[string]*Task),
 	}
 }
 
 func (s *Store) List() error {
 
-	if len(s.tasks) == 0 {
+	if len(s.Tasks) == 0 {
 		return errors.New(EmptyList)
 	}
 
-	for _, task := range s.tasks {
+	for _, task := range s.Tasks {
 		fmt.Printf("Задача -> %s | Статус -> %s | Приоритет -> %s\n", task.Name, task.Status, task.Priority)
 	}
 
@@ -57,11 +57,11 @@ func (s *Store) Add(name, priority string) error {
 		return errors.New(IncorrectPriority)
 	}
 
-	if _, ok := s.tasks[name]; ok {
+	if _, ok := s.Tasks[name]; ok {
 		return errors.New(AlreadyExists)
 	}
 
-	s.tasks[name] = &Task{
+	s.Tasks[name] = &Task{
 		Name:     name,
 		Status:   Todo,
 		Priority: priority,
@@ -77,7 +77,7 @@ func (s *Store) Remove(name string) error {
 		return errors.New(EmptyName)
 	}
 
-	task, ok := s.tasks[name]
+	task, ok := s.Tasks[name]
 
 	if !ok {
 		return errors.New(NotExist)
@@ -87,7 +87,7 @@ func (s *Store) Remove(name string) error {
 		return errors.New(ProtectedByStatus)
 	}
 
-	delete(s.tasks, name)
+	delete(s.Tasks, name)
 
 	return nil
 }
@@ -99,7 +99,7 @@ func (s *Store) Change(name, priority, status string) error {
 		return errors.New(EmptyName)
 	}
 
-	task, ok := s.tasks[name]
+	task, ok := s.Tasks[name]
 
 	if !ok {
 		return errors.New(NotExist)
@@ -133,7 +133,7 @@ func (s *Store) Search(query string) error {
 
 	flag := false
 
-	for name := range s.tasks {
+	for name := range s.Tasks {
 		ok := strings.Contains(strings.ToLower(name), normalizedQuery)
 
 		if ok {

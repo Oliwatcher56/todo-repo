@@ -152,6 +152,14 @@ func ParseFilterCommand(input string) (criterion string, mode string, err error)
 
 	parts := strings.Fields(userInput)
 
+	if len(parts) != 3 {
+		return "", "", errors.New(InvalidFilterCommand)
+	}
+
+	if parts[0] != "by" {
+		return "", "", errors.New(InvalidFilterCommand)
+	}
+
 	if parts[1] != "todo" && parts[1] != "progress" && parts[1] != "done" && parts[1] != "low" && parts[1] != "high" {
 		return "", "", errors.New(InvalidFilterCommand)
 	}

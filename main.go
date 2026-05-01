@@ -128,18 +128,18 @@ func main() {
 
 		case "filter":
 
-			criterion, err := commands.ParseFilterCommand(userInput)
+			criterion, mode, err := commands.ParseFilterCommand(userInput)
 
 			if err != nil {
 				fmt.Println(err)
 				continue
 			}
 
-			switch criterion {
-			case "by status":
-
-			case "by priority":
-
+			switch mode {
+			case "status":
+				store.ListByStatus(criterion)
+			case "priority":
+				store.ListByPriority(criterion)
 			}
 
 		case "reset":

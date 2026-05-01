@@ -8,14 +8,18 @@ type Commands struct {
 }
 
 var Default = Commands{
-	Order: []string{"help", "list", "add", "change", "remove", "search", "exit"},
+	Order: []string{"help", "list", "add", "remove", "change", "search", "filter", "reset", "save", "load", "exit"},
 	Data: map[string]string{
 		"help":   "Вывести список всех команд",
 		"list":   "Вывести список всех задач",
 		"add":    "Добавить задачу",
-		"change": "Изменить приоритет/статус",
 		"remove": "Удалить задачу",
+		"change": "Изменить приоритет/статус",
 		"search": "Найти задачу",
+		"filter": "Отфильтровать задачи по критерию",
+		"reset":  "Очистить список задач",
+		"save":   "Сохранить задачи в отдельный файл",
+		"load":   "Загрузить задачи из стороннего файла",
 		"exit":   "Выход",
 	},
 }

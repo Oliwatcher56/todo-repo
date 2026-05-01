@@ -44,6 +44,38 @@ func (s *Store) List() error {
 	return nil
 }
 
+func (s *Store) ListByStatus(status string) error {
+
+	if len(s.Tasks) == 0 {
+		return errors.New(EmptyList)
+	}
+
+	for _, task := range s.Tasks {
+		if status == task.Status {
+			fmt.Printf("Задача -> %s | Статус -> %s | Приоритет -> %s\n", task.Name, task.Status, task.Priority)
+		}
+	}
+
+	return nil
+
+}
+
+func (s *Store) ListByPriority(priority string) error {
+
+	if len(s.Tasks) == 0 {
+		return errors.New(EmptyList)
+	}
+
+	for _, task := range s.Tasks {
+		if priority == task.Priority {
+			fmt.Printf("Задача -> %s | Статус -> %s | Приоритет -> %s\n", task.Name, task.Status, task.Priority)
+		}
+	}
+
+	return nil
+
+}
+
 func (s *Store) Add(name, priority string) error {
 	name = strings.TrimSpace(name)
 
